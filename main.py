@@ -19,7 +19,7 @@ except ImportError:
 
 
 # Replace this with the name your group wants displayed in the tournament.
-GROUP_NAME = "replace-with-your-group-name"
+GROUP_NAME = "CAChE"
 
 
 def adversarial_search(
