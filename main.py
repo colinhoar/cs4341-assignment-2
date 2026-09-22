@@ -1,6 +1,8 @@
 """Student implementations for CS 4341 Assignment 2."""
 from __future__ import annotations
 
+from cylindrical_connect_four import WINDOWS, CylindricalConnectFour
+
 # Import utilities
 try:
     from .adversarial_search import (
@@ -55,3 +57,43 @@ def adversarial_search(
         search budget with enough margin to satisfy that hard limit.
     """
     raise NotImplementedError
+
+def heuristic(
+    problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
+    state: StateT,
+    maximizing_player: PlayerT,
+    minimizing_player: PlayerT
+) -> float:
+    from cylindrical_connect_four import all as ccf
+    if ccf.is_terminal(state):
+        return problem.utility(state, maximizing_player)
+    score = 0
+
+    for window in WINDOWS(state):
+        window_score = 0
+        pcount = 0
+        ocount = 0
+
+        for cell in window:
+            if cell == maximizing_player:
+                pcount+=1
+            elif cell == minimizing_player:
+                ocount+=1
+
+        if pcount > 0 and ocount == 0:
+            if pcount == 1:
+                window_score += 1
+            elif pcount == 2:
+                window_score += 10
+            elif pcount == 3:
+                window_score += 100
+        elif ocount > 0 and pcount == 0:
+            if ocount == 1:
+                window_score -= 1
+            elif ocount == 2:
+                window_score -= 10
+            elif ocount == 3:
+                window_score -= 100
+
+        score += window_score
+    return score

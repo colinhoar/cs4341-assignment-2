@@ -305,7 +305,7 @@ def format_state(state: GameState) -> str:
     right_border = "+" + "---+" * (CONNECT - 1)
     divider = " : "
     lines = [
-        f"{left_header}{divider}{right_header}",
+        f"{left_header}  {divider}  {right_header}",
         f"{left_border}{divider}{right_border}",
     ]
     for row in range(ROWS - 1, -1, -1):
