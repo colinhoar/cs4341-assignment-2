@@ -1,5 +1,6 @@
 """Student implementations for CS 4341 Assignment 2."""
 from __future__ import annotations
+import random
 
 # Import utilities
 try:
@@ -21,48 +22,49 @@ except ImportError:
 # Replace this with the name your group wants displayed in the tournament.
 GROUP_NAME = "CAChE"
 
-
-def heuristic(state: StateT, player: PlayerT) -> float:
-    return 0.0
+TRASH_TALK = [
+    "You're awful at this game",
+    "Terrible move",
+    "Take a hike, buddy",
+    "What are you even doing",
+    "I'm Michael Bot",
+    "Easy",
+]
 
 def heuristic(
-    problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
     state: StateT,
     maximizing_player: PlayerT,
 ) -> float:
 
     try:
-        from .cylindrical_connect_four import WINDOWS, RED, YELLOW
+        from .cylindrical_connect_four import (
+            WINDOWS,
+            opponent,
+        )
     except ImportError:
-        from cylindrical_connect_four import WINDOWS, RED, YELLOW
+        from cylindrical_connect_four import (
+            WINDOWS,
+            opponent,
+        )
 
-    if maximizing_player == RED:
-        opponent = YELLOW
-    else:
-        opponent = RED
+    opponent_player = opponent(maximizing_player)
 
     score = 0.0
 
-    player_threats = _count_winning_threats(
-        state,
-        maximizing_player,
-        WINDOWS,
-    )
-    opponent_threats = _count_winning_threats(
-        state,
-        opponent,
-        WINDOWS,
-    )
+    player_threats = _count_winning_threats(state, maximizing_player, WINDOWS)
+
+    opponent_threats = _count_winning_threats(state, opponent_player, WINDOWS)
 
     for window in WINDOWS:
         player_count = 0
         opponent_count = 0
         empty_cells = []
+
         for column, row in window:
             cell = state.cell(column, row)
             if cell == maximizing_player:
                 player_count += 1
-            elif cell == opponent:
+            elif cell == opponent_player:
                 opponent_count += 1
             else:
                 empty_cells.append((column, row))
@@ -71,7 +73,8 @@ def heuristic(
         if player_count == 4:
             score += 1000
         elif player_count == 3:
-            if _is_playable(state, empty_cells[0]):
+            empty = empty_cells[0]
+            if _is_playable(state, empty):
                 score += 100
             else:
                 score += 25
@@ -82,7 +85,8 @@ def heuristic(
         elif opponent_count == 4:
             score -= 1000
         elif opponent_count == 3:
-            if _is_playable(state, empty_cells[0]):
+            empty = empty_cells[0]
+            if _is_playable(state, empty):
                 score -= 100
             else:
                 score -= 25
@@ -90,12 +94,14 @@ def heuristic(
             score -= 10
         elif opponent_count == 1:
             score -= 1
+
     if player_threats >= 2:
         score += 250
+
     if opponent_threats >= 2:
         score -= 250
 
-    return score
+    return score / (1.0 + abs(score))
 
 
 def _is_playable(
@@ -117,12 +123,18 @@ def _count_winning_threats(
     windows,
 ) -> int:
 
+    try:
+        from .cylindrical_connect_four import (
+            opponent,
+        )
+    except ImportError:
+        from cylindrical_connect_four import (
+            opponent,
+        )
+
     threats = set()
 
-    if player == "red":
-        opponent = "yellow"
-    else:
-        opponent = "red"
+    opponent_player = opponent(player)
 
     for window in windows:
         player_count = 0
@@ -132,11 +144,10 @@ def _count_winning_threats(
             cell = state.cell(column, row)
             if cell == player:
                 player_count += 1
-            elif cell == opponent:
+            elif cell == opponent_player:
                 opponent_count += 1
             else:
                 empty_cells.append((column, row))
-
         if player_count == 3 and opponent_count == 0 and len(empty_cells) == 1 and _is_playable(state, empty_cells[0]):
             threats.add(empty_cells[0])
 
@@ -237,5 +248,8 @@ def adversarial_search(
         if value > best_value:
             best_value = value
             best_action = action
+
+    if random.random() < 0.5:
+        print("Michael Bot: " + random.choice(TRASH_TALK))
 
     return best_action
