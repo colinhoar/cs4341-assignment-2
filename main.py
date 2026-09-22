@@ -25,6 +25,122 @@ GROUP_NAME = "CAChE"
 def heuristic(state: StateT, player: PlayerT) -> float:
     return 0.0
 
+def heuristic(
+    problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
+    state: StateT,
+    maximizing_player: PlayerT,
+) -> float:
+
+    try:
+        from .cylindrical_connect_four import WINDOWS, RED, YELLOW
+    except ImportError:
+        from cylindrical_connect_four import WINDOWS, RED, YELLOW
+
+    if maximizing_player == RED:
+        opponent = YELLOW
+    else:
+        opponent = RED
+
+    score = 0.0
+
+    player_threats = _count_winning_threats(
+        state,
+        maximizing_player,
+        WINDOWS,
+    )
+    opponent_threats = _count_winning_threats(
+        state,
+        opponent,
+        WINDOWS,
+    )
+
+    for window in WINDOWS:
+        player_count = 0
+        opponent_count = 0
+        empty_cells = []
+        for column, row in window:
+            cell = state.cell(column, row)
+            if cell == maximizing_player:
+                player_count += 1
+            elif cell == opponent:
+                opponent_count += 1
+            else:
+                empty_cells.append((column, row))
+        if player_count > 0 and opponent_count > 0:
+            continue
+        if player_count == 4:
+            score += 1000
+        elif player_count == 3:
+            if _is_playable(state, empty_cells[0]):
+                score += 100
+            else:
+                score += 25
+        elif player_count == 2:
+            score += 10
+        elif player_count == 1:
+            score += 1
+        elif opponent_count == 4:
+            score -= 1000
+        elif opponent_count == 3:
+            if _is_playable(state, empty_cells[0]):
+                score -= 100
+            else:
+                score -= 25
+        elif opponent_count == 2:
+            score -= 10
+        elif opponent_count == 1:
+            score -= 1
+    if player_threats >= 2:
+        score += 250
+    if opponent_threats >= 2:
+        score -= 250
+
+    return score
+
+
+def _is_playable(
+    state: StateT,
+    position: tuple[int, int],
+) -> bool:
+
+    column, row = position
+
+    if row == 0:
+        return True
+
+    return state.cell(column, row - 1) is not None
+
+
+def _count_winning_threats(
+    state: StateT,
+    player: PlayerT,
+    windows,
+) -> int:
+
+    threats = set()
+
+    if player == "red":
+        opponent = "yellow"
+    else:
+        opponent = "red"
+
+    for window in windows:
+        player_count = 0
+        opponent_count = 0
+        empty_cells = []
+        for column, row in window:
+            cell = state.cell(column, row)
+            if cell == player:
+                player_count += 1
+            elif cell == opponent:
+                opponent_count += 1
+            else:
+                empty_cells.append((column, row))
+
+        if player_count == 3 and opponent_count == 0 and len(empty_cells) == 1 and _is_playable(state, empty_cells[0]):
+            threats.add(empty_cells[0])
+
+    return len(threats)
 
 def adversarial_search(
     problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
