@@ -127,7 +127,7 @@ def test_provided_positions_are_distinct_nonterminal_states() -> None:
 def test_board_display_repeats_columns_beyond_the_seam() -> None:
     state = state_from_actions((0, 6, 1))
     display = format_state(state)
-    assert "1   2   3   4   5   6   7 : 1   2   3" in display
+    assert "1   2   3   4   5   6   7   :   1   2   3" in display
     assert display.count(" : ") == 9
 
 
