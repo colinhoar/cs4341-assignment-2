@@ -71,51 +71,6 @@ def heuristic(
         score += window_score
     return score
 
-
-def _is_playable(
-    state: StateT,
-    position: tuple[int, int],
-) -> bool:
-
-    column, row = position
-
-    if row == 0:
-        return True
-
-    return state.cell(column, row - 1) is not None
-
-
-def _count_winning_threats(
-    state: StateT,
-    player: PlayerT,
-    windows,
-) -> int:
-
-    threats = set()
-
-    if player == "red":
-        opponent = "yellow"
-    else:
-        opponent = "red"
-
-    for window in windows:
-        player_count = 0
-        opponent_count = 0
-        empty_cells = []
-        for column, row in window:
-            cell = state.cell(column, row)
-            if cell == player:
-                player_count += 1
-            elif cell == opponent:
-                opponent_count += 1
-            else:
-                empty_cells.append((column, row))
-
-        if player_count == 3 and opponent_count == 0 and len(empty_cells) == 1 and _is_playable(state, empty_cells[0]):
-            threats.add(empty_cells[0])
-
-    return len(threats)
-
 def adversarial_search(
     problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
     state: StateT,
