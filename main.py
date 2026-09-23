@@ -175,7 +175,7 @@ def adversarial_search(
         search budget with enough margin to satisfy that hard limit.
     """
 
-    # Return none when the state is a terminal positions
+    # Return none when the state is a terminal position
     # Terminal positions can't make any further moves
     if problem.is_terminal(state):
         return None
@@ -192,8 +192,8 @@ def adversarial_search(
     # Set initial search depth to 4 (can be adjusted with context of heursitic)
     depth_limit = 4
 
+    # Return minimax value of current state for MAX (player)
     def minimax(current_state: StateT, depth: int) -> float:
-        """Return the minimax value of current_state for max_player."""
 
         # Use exact outcome if game is over
         if problem.is_terminal(current_state):
