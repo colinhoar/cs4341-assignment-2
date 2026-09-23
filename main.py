@@ -24,6 +24,98 @@ except ImportError:
 GROUP_NAME = "CAChE"
 
 
+# def heuristic(state: StateT, player: PlayerT) -> float:
+#     return 0.0
+
+def heuristic(
+    problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
+    state: StateT,
+    maximizing_player: PlayerT
+) -> float:
+    from cylindrical_connect_four import CylindricalConnectFour as CCF
+    ccf = CCF()
+    score = 0
+    if ccf.is_terminal(state):
+        if (problem.utility(state, maximizing_player)>1):
+            score += 5000
+        elif (problem.utility(state, maximizing_player)<1):
+            score -= 5000
+        return score
+    
+    for window in WINDOWS:
+        window_score = 0
+        pcount = 0
+        ocount = 0
+
+        for cell in window:
+            if cell == maximizing_player:
+                pcount+=1
+            elif cell != maximizing_player and cell is not None:
+                ocount+=1
+
+        if pcount > 0 and ocount == 0:
+            if pcount == 1:
+                window_score += 1
+            elif pcount == 2:
+                window_score += 10
+            elif pcount == 3:
+                window_score += 100
+        elif ocount > 0 and pcount == 0:
+            if ocount == 1:
+                window_score -= 1
+            elif ocount == 2:
+                window_score -= 10
+            elif ocount == 3:
+                window_score -= 100
+
+        score += window_score
+    return score
+
+
+def _is_playable(
+    state: StateT,
+    position: tuple[int, int],
+) -> bool:
+
+    column, row = position
+
+    if row == 0:
+        return True
+
+    return state.cell(column, row - 1) is not None
+
+
+def _count_winning_threats(
+    state: StateT,
+    player: PlayerT,
+    windows,
+) -> int:
+
+    threats = set()
+
+    if player == "red":
+        opponent = "yellow"
+    else:
+        opponent = "red"
+
+    for window in windows:
+        player_count = 0
+        opponent_count = 0
+        empty_cells = []
+        for column, row in window:
+            cell = state.cell(column, row)
+            if cell == player:
+                player_count += 1
+            elif cell == opponent:
+                opponent_count += 1
+            else:
+                empty_cells.append((column, row))
+
+        if player_count == 3 and opponent_count == 0 and len(empty_cells) == 1 and _is_playable(state, empty_cells[0]):
+            threats.add(empty_cells[0])
+
+    return len(threats)
+
 def adversarial_search(
     problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
     state: StateT,
@@ -56,44 +148,68 @@ def adversarial_search(
         Every call must return in less than 10 seconds.  Choose an internal
         search budget with enough margin to satisfy that hard limit.
     """
-    raise NotImplementedError
 
-def heuristic(
-    problem: AdversarialSearchProblem[StateT, ActionT, PlayerT],
-    state: StateT,
-    maximizing_player: PlayerT,
-    minimizing_player: PlayerT
-) -> float:
-    from cylindrical_connect_four import all as ccf
-    if ccf.is_terminal(state):
-        return problem.utility(state, maximizing_player)
-    score = 0
+    # Return none when the state is a terminal position
+    # Terminal positions can't make any further moves
+    if problem.is_terminal(state):
+        return None
 
-    for window in WINDOWS(state):
-        window_score = 0
-        pcount = 0
-        ocount = 0
+    legal_actions = tuple(problem.actions(state))
 
-        for cell in window:
-            if cell == maximizing_player:
-                pcount+=1
-            elif cell == minimizing_player:
-                ocount+=1
+    # Return None when there are no legal actions
+    if not legal_actions:
+        return None
 
-        if pcount > 0 and ocount == 0:
-            if pcount == 1:
-                window_score += 1
-            elif pcount == 2:
-                window_score += 10
-            elif pcount == 3:
-                window_score += 100
-        elif ocount > 0 and pcount == 0:
-            if ocount == 1:
-                window_score -= 1
-            elif ocount == 2:
-                window_score -= 10
-            elif ocount == 3:
-                window_score -= 100
+    # Evaluate each position from the perspective of the player making the decision at the root of the search
+    max_player = problem.to_move(state)
 
-        score += window_score
-    return score
+    # Set initial search depth to 4 (can be adjusted with context of heursitic)
+    depth_limit = 4
+
+    # Return minimax value of current state for MAX (player)
+    def minimax(current_state: StateT, depth: int) -> float:
+
+        # Use exact outcome if game is over
+        if problem.is_terminal(current_state):
+            return problem.utility(current_state, max_player)
+
+        # Estimate position if we reach search horizon
+        if depth == 0:
+            return heuristic(problem, current_state, max_player)
+
+        actions = tuple(problem.actions(current_state))
+
+        # MAX (player) chooses child with the largest value
+        if problem.to_move(current_state) == max_player:
+            value = float("-inf")
+
+            for action in actions:
+                child = problem.result(current_state, action)
+                child_value = minimax(child, depth - 1)
+                value = max(value, child_value)
+
+            return value
+
+        # MIN (agent) chooses child with the smallest value
+        value = float("inf")
+
+        for action in actions:
+            child = problem.result(current_state, action)
+            child_value = minimax(child, depth - 1)
+            value = min(value, child_value)
+
+        return value
+
+    # Choose legal move with the greatest minimax value since root belongs to MAX
+    best_action = legal_actions[0]
+    best_value = float("-inf")
+
+    for action in legal_actions:
+        child = problem.result(state, action)
+        value = minimax(child, depth_limit - 1)
+
+        if value > best_value:
+            best_value = value
+            best_action = action
+
+    return best_action
